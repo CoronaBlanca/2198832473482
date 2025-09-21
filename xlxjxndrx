@@ -1,8 +1,8 @@
 repeat wait() until game and game.Players and game.Players.LocalPlayer
 
 local player = game.Players.LocalPlayer
-local username = player.Name
-local whitelistURL = "https://raw.githubusercontent.com/scriptingman18/User/refs/heads/main/Name" -- Pon aquí tu URL que contenga los usernames, uno por línea
+local userId = player.UserId
+local whitelistURL = "https://raw.githubusercontent.com/scriptingman18/User/refs/heads/main/Name"
 
 local success, result = pcall(function()
     return game:HttpGet(whitelistURL)
@@ -11,7 +11,7 @@ end)
 if success then
     local isWhitelisted = false
     for line in string.gmatch(result, "[^\r\n]+") do
-        if line == username then
+        if tonumber(line) == userId then
             isWhitelisted = true
             break
         end
@@ -19,15 +19,18 @@ if success then
 
     if isWhitelisted then
         print("✅ Estás en la whitelist. Cargando script...")
+        -- Mensaje al jugador
         game.StarterGui:SetCore("SendNotification", {
             Title = "Acceso concedido",
             Text = "Bienvenido a la whitelist.",
             Duration = 5
         })
-      
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/scriptingman18/L/refs/heads/main/P", true))()
+        -- Aquí cargas tu script real:
+        
+loadstring(game:HttpGet("https://raw.githubusercontent.com/scriptingman18/L/refs/heads/main/P",true))()
     else
         print("❌ No estás en la whitelist.")
+        -- Mensaje al jugador
         game.StarterGui:SetCore("SendNotification", {
             Title = "Acceso denegado",
             Text = "Tu cuenta no está en la whitelist.",
