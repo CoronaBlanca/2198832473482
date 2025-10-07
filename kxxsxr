@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
 local Player = Players.LocalPlayer
 
-local allowedUserIds = {8133355887, 8507771717, 7827908860, 8383804125, 8230453047, 8796693114, 3404812617, 2886132219, 8572335959, 8905967061, 7933590339, 3663203854} -- ID de usuarios permitidos
+local allowedUserIds = {8133355887, 8507771717, 7827908860, 8383804125, 7332465644, 8230453047, 8796693114, 3404812617, 2886132219, 8572335959, 8905967061, 7933590339, 3663203854} -- ID de usuarios permitidos
 
 local isAllowed = false
 for _, id in ipairs(allowedUserIds) do
