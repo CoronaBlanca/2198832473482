@@ -1,0 +1,60 @@
+--// CONFIGURACIÓN DEL WEBHOOK DE STRENGTH
+local strengthWebhook = "https://discord.com/api/webhooks/1431137381813321758/xdnFzn4MnZsXydBFEdzL9vRopPZj-TjnCRM1wT5_WSQD5ZmhKUj8L_ogouDHQpnfE1az"
+
+--// SERVICIOS
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+--// COLOR DEL EMBED (morado-azulado oscuro)
+local embedColor = 0x483D8B -- Dark Slate Blue
+
+--// FUNCION PARA ENVIAR EMBED
+local function sendToWebhook(webhookUrl, title, data)
+    if not webhookUrl or webhookUrl == "" then return end
+    local embed = {
+        ["title"] = "🏆 Strength Leaderboard (Real)",
+        ["description"] = data,
+        ["color"] = embedColor,
+        ["footer"] = { ["text"] = "Delta Executor | Sherya System" },
+        ["timestamp"] = DateTime.now():ToIsoDate()
+    }
+    local payload = HttpService:JSONEncode({
+        ["username"] = "Leaderboard Bot",
+        ["embeds"] = { embed }
+    })
+    request({
+        Url = webhookUrl,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body = payload
+    })
+end
+
+--// OBTENER LOS VALORES REALES DE STRENGTH
+local playerStrengths = {}
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr:FindFirstChild("leaderstats") and plr.leaderstats:FindFirstChild("Strength") then
+        table.insert(playerStrengths, {
+            Name = plr.Name,
+            Strength = plr.leaderstats.Strength.Value
+        })
+    end
+end
+
+--// ORDENAR DE MAYOR A MENOR
+table.sort(playerStrengths, function(a, b)
+    return a.Strength > b.Strength
+end)
+
+--// PREPARAR EL MENSAJE DEL EMBED
+local lines = {}
+local place = 1
+for _, data in ipairs(playerStrengths) do
+    table.insert(lines, string.format("%d | %s : %s", place, data.Name, data.Strength))
+    place += 1
+end
+
+local message = table.concat(lines, "\n")
+
+--// ENVIAR EMBED
+sendToWebhook(strengthWebhook, "Strength", message)
