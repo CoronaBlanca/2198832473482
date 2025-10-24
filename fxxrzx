@@ -1,60 +1,151 @@
---// CONFIGURACIÓN DEL WEBHOOK DE STRENGTH
-local strengthWebhook = "https://discord.com/api/webhooks/1431137381813321758/xdnFzn4MnZsXydBFEdzL9vRopPZj-TjnCRM1wT5_WSQD5ZmhKUj8L_ogouDHQpnfE1az"
+-- Script para Muscle Legends - Top 10 Fuerza
+-- Envía la tabla de clasificación a Discord
 
---// SERVICIOS
-local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 
---// COLOR DEL EMBED (morado-azulado oscuro)
-local embedColor = 0x483D8B -- Dark Slate Blue
+-- CONFIGURACIÓN
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1431137381813321758/xdnFzn4MnZsXydBFEdzL9vRopPZj-TjnCRM1wT5_WSQD5ZmhKUj8L_ogouDHQpnfE1az" -- Reemplaza con tu webhook de Discord
 
---// FUNCION PARA ENVIAR EMBED
-local function sendToWebhook(webhookUrl, title, data)
-    if not webhookUrl or webhookUrl == "" then return end
-    local embed = {
-        ["title"] = "🏆 Strength Leaderboard (Real)",
-        ["description"] = data,
-        ["color"] = embedColor,
-        ["footer"] = { ["text"] = "Delta Executor | Sherya System" },
-        ["timestamp"] = DateTime.now():ToIsoDate()
-    }
-    local payload = HttpService:JSONEncode({
-        ["username"] = "Leaderboard Bot",
-        ["embeds"] = { embed }
-    })
-    request({
-        Url = webhookUrl,
-        Method = "POST",
-        Headers = { ["Content-Type"] = "application/json" },
-        Body = payload
-    })
+-- Función para obtener el top 10 de jugadores por fuerza
+local function obtenerTop10()
+    local jugadores = {}
+    
+    for _, jugador in pairs(Players:GetPlayers()) do
+        -- Busca la estadística de fuerza del jugador
+        local leaderstats = jugador:FindFirstChild("leaderstats")
+        if leaderstats then
+            local fuerza = leaderstats:FindFirstChild("Strength") or 
+                          leaderstats:FindFirstChild("Fuerza") or
+                          leaderstats:FindFirstChild("Power")
+            
+            if fuerza and fuerza.Value then
+                table.insert(jugadores, {
+                    nombre = jugador.Name,
+                    fuerza = fuerza.Value
+                })
+            end
+        end
+    end
+    
+    -- Ordenar por fuerza (mayor a menor)
+    table.sort(jugadores, function(a, b)
+        return a.fuerza > b.fuerza
+    end)
+    
+    -- Tomar solo los primeros 10
+    local top10 = {}
+    for i = 1, math.min(10, #jugadores) do
+        table.insert(top10, jugadores[i])
+    end
+    
+    return top10
 end
 
---// OBTENER LOS VALORES REALES DE STRENGTH
-local playerStrengths = {}
-for _, plr in ipairs(Players:GetPlayers()) do
-    if plr:FindFirstChild("leaderstats") and plr.leaderstats:FindFirstChild("Strength") then
-        table.insert(playerStrengths, {
-            Name = plr.Name,
-            Strength = plr.leaderstats.Strength.Value
-        })
+-- Función para formatear números grandes
+local function formatearNumero(num)
+    if num >= 1e12 then
+        return string.format("%.2fT", num / 1e12)
+    elseif num >= 1e9 then
+        return string.format("%.2fB", num / 1e9)
+    elseif num >= 1e6 then
+        return string.format("%.2fM", num / 1e6)
+    elseif num >= 1e3 then
+        return string.format("%.2fK", num / 1e3)
+    else
+        return tostring(num)
     end
 end
 
---// ORDENAR DE MAYOR A MENOR
-table.sort(playerStrengths, function(a, b)
-    return a.Strength > b.Strength
-end)
-
---// PREPARAR EL MENSAJE DEL EMBED
-local lines = {}
-local place = 1
-for _, data in ipairs(playerStrengths) do
-    table.insert(lines, string.format("%d | %s : %s", place, data.Name, data.Strength))
-    place += 1
+-- Función para enviar el embed a Discord
+local function enviarADiscord(top10)
+    if WEBHOOK_URL == "TU_WEBHOOK_URL_AQUI" then
+        warn("⚠️ Por favor configura tu WEBHOOK_URL primero")
+        return
+    end
+    
+    -- Crear el campo de descripción con la tabla
+    local descripcion = "```\n"
+    descripcion = descripcion .. "Pos | Jugador              | Fuerza\n"
+    descripcion = descripcion .. "----+----------------------+-------------\n"
+    
+    for i, jugador in ipairs(top10) do
+        local posicion = string.format("%2d", i)
+        local nombre = string.sub(jugador.nombre, 1, 20)
+        nombre = nombre .. string.rep(" ", 20 - #nombre)
+        local fuerza = formatearNumero(jugador.fuerza)
+        
+        descripcion = descripcion .. string.format("%s  | %s | %s\n", 
+            posicion, nombre, fuerza)
+    end
+    
+    descripcion = descripcion .. "```"
+    
+    -- Crear el embed
+    local embed = {
+        ["embeds"] = {{
+            ["title"] = "🏆 TOP 10 - Muscle Legends",
+            ["description"] = descripcion,
+            ["color"] = 15844367, -- Color dorado
+            ["footer"] = {
+                ["text"] = "Actualizado: " .. os.date("%d/%m/%Y %H:%M:%S")
+            },
+            ["thumbnail"] = {
+                ["url"] = "https://tr.rbxcdn.com/ed8f3d96e2374e6cd5e6ffb858d47077/150/150/Image/Png"
+            }
+        }}
+    }
+    
+    -- Enviar el webhook
+    local success, err = pcall(function()
+        local response = request({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(embed)
+        })
+        
+        if response.StatusCode == 204 then
+            print("✅ Tabla enviada a Discord exitosamente!")
+        else
+            warn("❌ Error al enviar: " .. response.StatusCode)
+        end
+    end)
+    
+    if not success then
+        warn("❌ Error: " .. tostring(err))
+    end
 end
 
-local message = table.concat(lines, "\n")
+-- Función principal
+local function ejecutar()
+    print("🔄 Obteniendo top 10 jugadores...")
+    local top10 = obtenerTop10()
+    
+    if #top10 > 0 then
+        print("📊 Top 10 obtenido, enviando a Discord...")
+        enviarADiscord(top10)
+        
+        -- Mostrar en consola también
+        print("\n=== TOP 10 FUERZA ===")
+        for i, jugador in ipairs(top10) do
+            print(string.format("%d. %s - %s", i, jugador.nombre, formatearNumero(jugador.fuerza)))
+        end
+    else
+        warn("⚠️ No se encontraron jugadores con estadísticas de fuerza")
+    end
+end
 
---// ENVIAR EMBED
-sendToWebhook(strengthWebhook, "Strength", message)
+-- Ejecutar
+ejecutar()
+
+-- Opcional: Actualizar automáticamente cada 5 minutos
+--[[
+spawn(function()
+    while wait(300) do -- 300 segundos = 5 minutos
+        ejecutar()
+    end
+end)
+]]
